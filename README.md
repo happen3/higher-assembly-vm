@@ -13,6 +13,12 @@
 ]
 ```
 
+#### Q: I want to run the VM but it dosen't works, how to fix?
+
+**A:** Please check that you use the latest version of python (3.12.0) and you don't have modified something you shouldn't.
+
+Else, please open up an issue.
+
 # Basic overview of instructions
 
 You should know that before all comes instructions in the HAVM,
