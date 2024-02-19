@@ -1,0 +1,15 @@
+if command == "utf8::ENCODE":
+    if isinstance(rom[position + 1], str):
+        reg[rom[position]] = rom[position + 1].encode("utf8")
+
+if command == "utf8::DECODE":
+    if isinstance(rom[position + 1], bytes):
+        reg[rom[position]] = rom[position + 1].decode("utf8")
+
+#if command == "utf8::RENCODE":
+#    if isinstance(reg[rom[position + 1]], str):
+#        reg[rom[position]] = reg[rom[position + 1]].encode("utf8")
+
+#if command == "utf8::RDECODE":
+#    if isinstance(reg[rom[position + 1]], bytes):
+#        reg[rom[position]] = reg[rom[position + 1]].decode("utf8")

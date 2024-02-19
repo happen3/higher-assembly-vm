@@ -1,0 +1,14 @@
+import math
+
+if command == "FACT":
+    reg[16] = math.factorial(rom[position])
+if command == "FLOOR":
+    reg[16] = math.floor(rom[position])
+if command == "CEIL":
+    reg[16] = math.ceil(rom[position])
+if command == "3MIN":
+    reg[16] = min(rom[position], rom[position + 1], rom[position + 2])
+if command == "3MAX":
+    reg[16] = max(rom[position], rom[position + 1], rom[position + 2])
+if command == "LOGA":
+    reg[16] = math.log(rom[position], rom[position + 1])

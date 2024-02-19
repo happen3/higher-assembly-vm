@@ -1,0 +1,13 @@
+import os
+if command == "PY":
+    exec(rom[position])
+if command == "MKDIR":
+    os.mkdir(rom[position])
+if command == "RMDIR":
+    os.rmdir(rom[position])
+if command == "RMFILE":
+    os.remove(rom[position])
+if command == "REN":
+    os.rename(rom[position])
+if command == "URANDOM":
+    reg[16] = os.urandom(rom[position])

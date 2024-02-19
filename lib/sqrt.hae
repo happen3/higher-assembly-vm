@@ -1,0 +1,5 @@
+# sqrt.hae
+import math
+if command == "SQRT":
+    a = rom[position]
+    reg[16] = math.sqrt(a)

@@ -1,0 +1,27 @@
+# trigo.hae
+import math
+
+if command == "COS":
+    writereg(16, math.cos(rom[position]))
+if command == "SIN":
+    writereg(16, math.sin(rom[position]))
+if command == "COSH":
+    writereg(16, math.cosh(rom[position]))
+if command == "TAN":
+    writereg(16, math.tan(rom[position]))
+if command == "TANH":
+    writereg(16, math.tanh(rom[position]))
+if command == "ACOS":
+    writereg(16, math.acos(rom[position]))
+if command == "ASIN":
+    writereg(16, math.asin(rom[position]))
+if command == "ACOSH":
+    writereg(16, math.acosh(rom[position]))
+if command == "ASINH":
+    writereg(16, math.asinh(rom[position]))
+if command == "ATAN":
+    writereg(16, math.atan(rom[position]))
+if command == "ATANH":
+    writereg(16, math.atanh(rom[position]))
+if command == "ATAN2":
+    writereg(16, math.atan2(rom[position], rom[position + 1]))

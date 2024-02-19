@@ -1,0 +1,25 @@
+# bitshift.hae
+
+if command == "SHL":
+    a = rom[position]
+    b = rom[position + 1]
+
+    writereg(16, a << b)
+
+if command == "SHR":
+    a = rom[position]
+    b = rom[position + 1]
+
+    writereg(16, a >> b)
+
+if command == "RSHL":
+    a = reg[1]
+    b = reg[2]
+
+    writereg(16, a << b)
+
+if command == "RSHR":
+    a = reg[1]
+    b = reg[2]
+
+    writereg(16, a >> b)

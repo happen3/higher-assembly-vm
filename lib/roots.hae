@@ -1,0 +1,2 @@
+if command == "ROOT":
+    reg[16] = rom[position] ** (1/rom[position + 1])

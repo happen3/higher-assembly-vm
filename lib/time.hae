@@ -1,0 +1,13 @@
+import datetime
+
+if command == "GTIME":
+    t = datetime.datetime.now()
+    reg[0] = f"{"0" + str(t.hour) if t.hour < 10 else str(t.hour)}:{"0" + str(t.minute) if t.minute < 10 else str(t.minute)}:{"0" + str(t.second) if t.second < 10 else str(t.second)}"
+if command == "GYEAR":
+    reg[0] = datetime.datetime.now().year
+if command == "GMONTH":
+    reg[0] = datetime.datetime.now().month
+if command == "GWD":
+    reg[0] = datetime.datetime.now().weekday()
+if command == "GDATE":
+    reg[0] = datetime.datetime.date(datetime.datetime.now()).isoformat()
