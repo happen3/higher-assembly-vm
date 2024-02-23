@@ -10,6 +10,9 @@ memory = [""] * 1024
 stack = []
 reg = [00] * 17
 counters =  [0] * 4
+variables = []
+
+Types = ["string", "int", "bool", "float", "null"]
 
 exceptions = []
 
@@ -20,7 +23,7 @@ LABEL_IN = False
 VER_MODE = False
 STANDARD_LIB_PATH = os.getcwd() + "\\lib"
 SIMPLE_MODE = False
-VM_VERSION = "1.00"
+VM_VERSION = "1.2a0"
 QUIET = False
 INCLUDES = []
 INC_PREPRO = []
@@ -44,6 +47,20 @@ RETCODE = 0
 ]"""
 
 # Utils
+def FindVariableA(Name: str) -> int:
+    for index, item in enumerate(variables):
+        for key, value in item.items():
+            if key == 'name' and Name in value:
+                return index 
+                    
+def CheckTypeA(TType: str, Variable_Type: str) -> bool:
+    if TType in Types:
+        if Variable_Type == TType:
+            return True
+    else:
+        raise TypeError
+    return False
+
 def writereg(register: int, value: any):
     reg[register] = value
 
@@ -143,7 +160,7 @@ while position < len(rom):
         continue
     
     if NOEXEC == False and LABEL_IN == False:
-        afnc = rom[position + 1]
+        afnc = rom[position + 1] if position < len(rom) - 1 else rom[position - 1]
         if str(afnc).startswith("$"):
             register_index = int(str(afnc)[1:])
             if 0 <= register_index < len(reg):
@@ -158,6 +175,13 @@ while position < len(rom):
             else:
                 print(f"Error: Invalid register index '{register_index}' at position {position}.")
                 sys.exit(19)
+        if str(afnc).startswith("*"):
+            Ivar = str(afnc)[1:]
+            for index, item in enumerate(variables):
+                for key, value in item.items():
+                    if key == 'name' and Ivar in value:
+                        if position + 2 > len(rom):
+                            rom[position + 2] = variables[index]['data'] 
         
         if command == "@INCLUDE":
             try:
@@ -268,6 +292,40 @@ while position < len(rom):
             memory[rom[position]] = ""
         elif command == "JUMP":
             position = rom[position]
+        elif command == "SET":
+            pytype = None
+            varname = rom[position]
+            varval = rom[position + 2]
+            vartype = rom[position + 1]
+
+            variable = {"name": varname, "data": varval, "type": vartype}
+            for Type in Types:
+                if vartype == Type:
+                    # Valid type, translate to python
+                    if Type == "string":
+                        pytype = str
+                    elif Type == "int":
+                        pytype = int
+                    elif Type == "float":
+                        pytype = float
+                    elif Type == "bool":
+                        pytype = bool
+                    else:
+                        # invalid type, raise an error.
+                        raise TypeError
+                    if isinstance(varval, pytype):
+                        # Allow addition.
+                        variables.append(variable)
+                    else:
+                        # invalid type, raise an error
+                        raise TypeError
+        elif command == "IS_STRING":
+            var = rom[position]
+            Type = variables[FindVariableA(var)]['type']
+            
+            if CheckTypeA("string", Type):
+                print(True)
+
         elif command == "CMP":
             NOEXEC = True
             a = rom[position]
