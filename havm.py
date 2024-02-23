@@ -143,6 +143,21 @@ while position < len(rom):
         continue
     
     if NOEXEC == False and LABEL_IN == False:
+        afnc = rom[position + 1]
+        if str(afnc).startswith("$"):
+            register_index = int(str(afnc)[1:])
+            if 0 <= register_index < len(reg):
+                rom[position + 1] = reg[register_index]
+            else:
+                print(f"Error: Invalid register index '{register_index}' at position {position}.")
+                sys.exit(19)
+        if str(afnc).startswith("#"):
+            register_index = int(str(afnc)[1:])
+            if 0 <= register_index < len(reg):
+                rom[position + 1] = memory[register_index]
+            else:
+                print(f"Error: Invalid register index '{register_index}' at position {position}.")
+                sys.exit(19)
         
         if command == "@INCLUDE":
             try:
@@ -205,7 +220,6 @@ while position < len(rom):
             NOEXEC = True
             reg[1] = rom[position] + rom[position + 1]
         elif command == "RCONCAT":
-            NOEXEC = True
             reg[1] = reg[rom[position]] + reg[rom[position + 1]]
         elif command == "SPUSH":
             NOEXEC = True
@@ -314,10 +328,10 @@ while position < len(rom):
                 position = rom[position] - 1
         
         elif command == "INC":
-            counter = rom[position] - 1
+            counter = rom[position]
             counters[counter] = counters[counter] + 1
         elif command == "DEC":
-            counter = rom[position] - 1
+            counter = rom[position]
             counters[counter] = counters[counter] - 1
         elif command == "GCN":
             reg[13] = counters[rom[position]]
