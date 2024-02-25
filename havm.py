@@ -7,12 +7,13 @@ import re
 import tkinter.messagebox as mb
 
 memory = [""] * 1024
+spmemory = [0] * 256
 stack = []
 reg = [00] * 17
 counters =  [0] * 4
 variables = []
 
-Types = ["string", "int", "bool", "float", "null"]
+Types = ["string", "int", "bool", "float", "char", "null"]
 
 exceptions = []
 
@@ -23,28 +24,19 @@ LABEL_IN = False
 VER_MODE = False
 STANDARD_LIB_PATH = os.getcwd() + "\\lib"
 SIMPLE_MODE = False
-VM_VERSION = "1.2a0"
+VM_VERSION = "1.2a2"
 QUIET = False
 INCLUDES = []
 INC_PREPRO = []
 DUMP_MEM = False
+LOOP = False
+MAX_DISTANCE = 4
 DUMP_REG = False
 INFO_MODE = False
 DUMP_STA = False
 MANIFEST_VERSION = 1
 RETP = 0x00
 RETCODE = 0
-
-"""rom = [
-    "LABEL",
-    "PUTS", "i+", "Hello, world!", "", 
-    "END DATA",
-    "RETC",
-    "END LABEL",
-    "SRA", 13,
-    "JUMP", 1, 
-    "NOP"
-]"""
 
 # Utils
 def FindVariableA(Name: str) -> int:
@@ -53,12 +45,12 @@ def FindVariableA(Name: str) -> int:
             if key == 'name' and Name in value:
                 return index 
                     
-def CheckTypeA(TType: str, Variable_Type: str) -> bool:
+def CheckTypeA(TType: str, Variable_Type: str) -> bool | None:
     if TType in Types:
         if Variable_Type == TType:
             return True
     else:
-        raise TypeError
+        return None
     return False
 
 def writereg(register: int, value: any):
@@ -148,41 +140,90 @@ if not SIMPLE_MODE and not QUIET:
     print("\n\n")
  
 #program loader
+spmemory[0] = len(rom)
 timestart = time.time_ns()
+spmemory[1] = timestart
+spmemory[2] = ManifestPresence
+spmemory[3] = f"{VM_VERSION} mv {MANIFEST_VERSION}"
+spmemory[255] = 0
 
+Wposition = 0
 position = 0
 while position < len(rom):
+    spmemory[255] = spmemory[255] + 1
     ncommand = str(rom[position])
     command = rom[position - 1]  # Get the current command
+    afnc = ncommand
+    print(rom, position, rom[position])
             
     if ";" in str(command):
         position += 1  # Skip comments
         continue
+
+    inner_position = 0  # Initialize inner position
     
-    if NOEXEC == False and LABEL_IN == False:
-        afnc = rom[position + 1] if position < len(rom) - 1 else rom[position - 1]
-        if str(afnc).startswith("$"):
-            register_index = int(str(afnc)[1:])
-            if 0 <= register_index < len(reg):
-                rom[position + 1] = reg[register_index]
-            else:
-                print(f"Error: Invalid register index '{register_index}' at position {position}.")
-                sys.exit(19)
-        if str(afnc).startswith("#"):
-            register_index = int(str(afnc)[1:])
-            if 0 <= register_index < len(reg):
-                rom[position + 1] = memory[register_index]
-            else:
-                print(f"Error: Invalid register index '{register_index}' at position {position}.")
-                sys.exit(19)
-        if str(afnc).startswith("*"):
-            Ivar = str(afnc)[1:]
-            for index, item in enumerate(variables):
-                for key, value in item.items():
-                    if key == 'name' and Ivar in value:
-                        if position + 2 > len(rom):
-                            rom[position + 2] = variables[index]['data'] 
+    while inner_position < len(afnc):
+        char = afnc[inner_position]
         
+        if char == "$":
+            register_index = int(afnc[inner_position + 1:])
+            if 0 <= register_index < len(reg):
+                rom[position] = reg[register_index]
+            else:
+                print(f"Error: Invalid register index '{register_index}' at position {position}.")
+                sys.exit(19)
+            break  # Exit inner loop after processing
+        elif char == "#":
+            register_index = int(afnc[inner_position + 1:])
+            if 0 <= register_index < len(memory):
+                rom[position] = memory[register_index]
+            elif 8000 <= register_index < len(spmemory) + 8000:
+                rom[position] = spmemory[register_index - 8000]
+            else:
+                print(f"Error: Invalid memory address '{register_index}' at position {position}.")
+                sys.exit(19)
+            break  # Exit inner loop after processing
+        elif char == "*":
+            Ivar = afnc[inner_position + 1:]
+            variable = FindVariableA(Ivar)
+            if variable:
+                rom[position] = variables[variable]['data']
+                print(rom)
+            else:
+                print(f"Error: Variable '{Ivar}' not found.")
+                sys.exit(19)
+            break  # Exit inner loop after processing
+        
+        inner_position += 1  # Move to the next character in afnc
+
+    if NOEXEC == False and LABEL_IN == False:
+
+        if command == "TO": #spOp.
+            mdat = memory[rom[position - 2]] if rom[position - 2] < 8000 else spmemory[int(rom[position - 2]) - 8000]
+            ri = rom[position]
+            reg[ri] = mdat
+        if command == "FROM": #spOp.
+            #mdat = memory[rom[position]] if rom[position] < 8000 else spmemory[int(rom[position]) - 8000]
+            ri = rom[position - 2]
+            memory[rom[position - 2]] = reg[ri]
+        if command == "[IN":
+            NOEXEC = True
+            stringA = rom[position]
+            if rom[position + 1] == "CHAR]":
+                reg[16] = stringA[rom[position + 2]]
+        if command == "SPLITS":
+            NOEXEC = True
+            stringA = rom[position]
+            sep = rom[position + 1]
+            if len(sep) > 1:
+                print("Incompatible type: char | string.")
+                sys.exit(20)
+            to = rom[position + 2]
+            if not isinstance(to, int):
+                print(f"Incompatible type: int | {type(to)}.")
+                sys.exit(20)
+
+            reg[to] = stringA.split(sep)
         if command == "@INCLUDE":
             try:
                 if "<" in rom[position] and ">" in rom[position]:
@@ -197,8 +238,8 @@ while position < len(rom):
                 print(f"Program failure - Unable to link module.")
                 sys.exit(10)
         if command == "NOP":
-            for _ in range(0, 768):
-                pass
+            position = position + 1
+            pass
         elif command == "HLT":
             position = len(rom)
         elif command == "STA":
@@ -210,40 +251,27 @@ while position < len(rom):
             reg[10] = memory[rom[position]]
         elif command == "PUTS":
             NOEXEC = True
-            if rom[position] == "l+":
-                print(reg[10])
-            elif rom[position] == "i+":
-                print(rom[position + 1])
+            print(rom[position])
         elif command == "READ":
             rarg = input("")
             reg[11] = rarg
         elif command == "PUTSN":
             NOEXEC = True
-            if rom[position] == "l+":
-                print(reg[10], end="")
-            elif rom[position] == "i+":
-                print(rom[position + 1], end="")
+            print(rom[position], end="")
         elif command == "LOADR":
             NOEXEC = True
             memory[int(rom[position])] = reg[rom[position + 1]]
         elif command == "EXPORT":
-            if rom[position] == "i+":
-                with open(rom[position + 1], rom[position + 2]) as fh:
-                    fh.write(rom[position + 2])
-            elif rom[position] == "l+":
-                with open(rom[position + 1], rom[position + 2]) as fh:
-                    fh.write(reg[10])
+            with open(rom[position], rom[position + 1]) as fh:
+                fh.write(rom[position + 1])
         elif command == "IMPORT":
-            if rom[position] == "i+":
-                with open(rom[position + 1], rom[position + 2]) as fh:
-                    reg[12] = fh.read()
-            elif rom[position] == "l+":
-                with open(rom[position + 1], rom[position + 2]) as fh:
-                    reg[12] = fh.read()
+            with open(rom[position], rom[position + 1]) as fh:
+                reg[12] = fh.read()
         elif command == "CONCAT":
             NOEXEC = True
             reg[1] = rom[position] + rom[position + 1]
-        elif command == "RCONCAT":
+        elif command == "RCONCAT": # To be deprecated.
+            print('This feature is now deprecated. Consider using CONCAT with register/memory to argument features.')
             reg[1] = reg[rom[position]] + reg[rom[position + 1]]
         elif command == "SPUSH":
             NOEXEC = True
@@ -253,31 +281,24 @@ while position < len(rom):
             del stack[-1]
         elif command == "ADD":
             reg[16] = reg[1] + reg[2]
-            reg[16] = reg[1] + reg[2]
         elif command == "SUB":
-            reg[16] = reg[1] - reg[2]
             reg[16] = reg[1] - reg[2]
         elif command == "MULT":
             reg[16] = reg[1] * reg[2]
-            reg[16] = reg[1] * reg[2]
         elif command == "DIV":
-            reg[16] = reg[1] / reg[2]
             reg[16] = reg[1] / reg[2]
         elif command == "XOR":
             reg[16] = reg[1] ^ reg[2]
-            reg[16] = reg[1] ^ reg[2]
         elif command == "NOT":
-            reg[16] = ~reg[1]
             reg[16] = ~reg[1]
         elif command == "OR":
             reg[16] = reg[1] | reg[2]
         elif command == "MOD":
             reg[16] = reg[1] % reg[2]
-            reg[16] = reg[1] % reg[2]
         elif command == "POW":
             reg[16] = reg[1] ** reg[2]
-            reg[16] = reg[1] ** reg[2]
-        elif command == "PUSHA":
+        elif command == "PUSHA": # Dep.
+            print("This feature is now deprecated. Please switch to using #(adress) or $(index) for memory/register to argument.")
             exec(f"rom[{rom[position]}] = reg[{rom[position + 1]}]")
         elif command == "PUSH":
             NOEXEC = True
@@ -293,6 +314,7 @@ while position < len(rom):
         elif command == "JUMP":
             position = rom[position]
         elif command == "SET":
+            NOEXEC = True
             pytype = None
             varname = rom[position]
             varval = rom[position + 2]
@@ -310,15 +332,20 @@ while position < len(rom):
                         pytype = float
                     elif Type == "bool":
                         pytype = bool
+                    elif Type == "char":
+                        pytype = str
+                        if len(varval) > 1:
+                            print("Incompatible types: char | string")
+                            sys.exit(19)
                     else:
                         # invalid type, raise an error.
-                        raise TypeError
+                        print(f"Invalid variable type specified in SET ; {str(position)}")
                     if isinstance(varval, pytype):
                         # Allow addition.
                         variables.append(variable)
                     else:
                         # invalid type, raise an error
-                        raise TypeError
+                        print(f"Invalid type specified in SET ; {str(position)}")
         elif command == "IS_STRING":
             var = rom[position]
             Type = variables[FindVariableA(var)]['type']
@@ -345,7 +372,8 @@ while position < len(rom):
                         reg[4] = True
                     elif a < b:
                         reg[4] = False
-        elif command == "RCMP":
+        elif command == "RCMP": # dep.
+            print("This feature is now deprecated. Please consider using CMP with register/memory to argument.")
             a = reg[rom[position]]
             b = reg[rom[position + 1]]
             if a == b:
@@ -420,6 +448,9 @@ while position < len(rom):
         NOEXEC = False
     elif command == "END LABEL":
         LABEL_IN = False
+
+    if command == "CHAR]":
+        NOEXEC = False
     
     position += 1  # Move to the next instruction
 
